@@ -1,0 +1,8 @@
+note over browser:
+browser executes spa.js code on form submit
+stores note and uses DOM-API to update html
+sends note to server
+end note
+
+browser->server:HTTP POST {content: "...", date: "..."} to https://studies.cs.helsinki.fi/exampleapp/new_note_spa
+server->browser: Status 201 {"message":"note created"}

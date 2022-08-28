@@ -1,6 +1,19 @@
 import {useState, useEffect} from 'react'
 import axios from 'axios'
+import './index.css'
 import personService from './services/persons'
+
+const Notification = ({message}) => {
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div className={message.type.concat('-notification')}>
+        {message.notification}
+    </div>
+  )
+}
 
 const Filter = ({filter, handleFilter}) => {
   return (
@@ -60,6 +73,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notification, setNotification] = useState(null)
 
   const getPersons = () => {
     personService.getAll()
@@ -90,23 +104,49 @@ const App = () => {
   const handleAdd = (event) => {
     event.preventDefault()
 
-    const isInArray = persons.filter(person => person.name === newName).length > 0
+    // we assume only 1 person per name
+    const existingPerson = persons.filter(person => person.name === newName)[0]
 
-    if(isInArray){
-      window.alert(`${newName} is already added to phonebook.`)
-      return
-    }
     const person = {
       name: newName,
       number: newNumber
     }
-    personService
-      .create(person)
-      .then(returnedPerson => {
-        setPersons(persons.concat(returnedPerson))
-        setNewName('')
-        setNewNumber('')
-      })
+
+    if (existingPerson) {
+      let newPersons = persons.filter(person => person.name !== newName)
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number?`)) {
+        personService
+          .update(existingPerson.id, person)
+          .then(returnedPerson => {
+            setPersons(newPersons.concat(returnedPerson).sort((a, b) => a.id < b.id ? -1 : 1))
+            setNewName('')
+            setNewNumber('')
+            setNotification({notification: `Updated ${returnedPerson.name}`, type:'update'})
+            setTimeout(() => {
+              setNotification(null)
+            }, 4000)
+          })
+          .catch(error => {
+            setNotification({notification: `Information of ${existingPerson.name} has been removed from the server`, type:'delete'})
+            setTimeout(() => {
+              setNotification(null)
+            }, 4000)
+            setPersons(persons.filter(p => p.name !== existingPerson.name))
+          })
+      }
+    } else {
+      personService
+        .create(person)
+        .then(returnedPerson => {
+          setPersons(persons.concat(returnedPerson))
+          setNewName('')
+          setNewNumber('')
+          setNotification({notification: `Added ${returnedPerson.name}`, type:'create'})
+          setTimeout(() => {
+            setNotification(null)
+          }, 4000)
+        })
+    }
   }
 
   const handleDelete = (id) => {
@@ -117,6 +157,10 @@ const App = () => {
         .remove(person.id)
         .then(() => {
           setPersons(persons.filter(p => p.id !== person.id))
+          setNotification({notification: `Deleted ${person.name}`, type:'delete'})
+          setTimeout(() => {
+            setNotification(null)
+          }, 4000)
         })
     }
   }
@@ -124,6 +168,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notification} type />
       <Filter 
         filter={filter}
         handleFilter={handleFilter}

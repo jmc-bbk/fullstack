@@ -1,6 +1,8 @@
 import {useState, useEffect} from 'react'
 import axios from 'axios'
 
+const api_key = process.env.REACT_APP_API_KEY
+
 const CountryListView = ({countries}) => {
   const [toShow, setToShow] = useState(Array(countries.length).fill(false))
   
@@ -22,6 +24,21 @@ const CountryListView = ({countries}) => {
 }
 
 const Country = ({country}) => {
+  const [weather, setWeather] = useState(null)
+
+  const getCapitalLat = (country) => country.capitalInfo.latlng[0]
+  const getCapitalLon = (country) => country.capitalInfo.latlng[1]
+  const getWeather = (country) => {
+    axios
+      .get(`https://api.openweathermap.org/data/2.5/weather?lat=${getCapitalLat(country)}&lon=${getCapitalLon(country)}&units=metric&appid=${api_key}`)
+      .then(response => {
+        setWeather(response.data)
+      })
+  }
+  const getWeatherIcon = () => `http://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`
+  
+  useEffect(() => getWeather(country), [])
+  
   return (
     <div>
       <h2>{country.name.common}</h2>
@@ -32,6 +49,10 @@ const Country = ({country}) => {
         {Object.values(country.languages).map((lang, idx) => <li key={idx}>{lang}</li>)}
       </ul>
       <img src={country.flags.png} alt='flag' />
+      <h3>Weather in {country.capital[0]}</h3>
+      {weather !== null && <p>temperature {weather.main.temp} Celcius</p>}
+      {weather !== null && <img src={getWeatherIcon()} alt="weather icon" />}
+      {weather !== null && <p>{weather.wind.speed} m/s</p>}
     </div>
   )
 }

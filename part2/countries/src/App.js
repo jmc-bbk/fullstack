@@ -1,6 +1,26 @@
 import {useState, useEffect} from 'react'
 import axios from 'axios'
 
+const CountryListView = ({countries}) => {
+  const [toShow, setToShow] = useState(Array(countries.length).fill(false))
+  
+  const handleClick = (idx) => {
+    const newToShow = toShow.slice()
+    newToShow[idx] = !toShow[idx]
+    setToShow(newToShow) 
+  }
+  
+  return (
+    countries.map((c, idx) => 
+      <div key={idx}>
+        <p>{c.name.common}</p>
+        <button onClick={() => handleClick(idx)}>show</button>
+        {toShow[idx] && <Country country={countries[idx]} />}
+      </div>
+    )
+  )
+}
+
 const Country = ({country}) => {
   return (
     <div>
@@ -16,22 +36,12 @@ const Country = ({country}) => {
   )
 }
 
-const Countries = ({countries, filter}) => {
+const Countries = ({countries}) => {
 
-  const filterCountries = () => {
-    return countries.filter(country => country.name.common.toLowerCase().includes(filter.toLowerCase()))
-  }
-
-  const filteredCountries = filterCountries()
-
-  let country = null
-  if (filteredCountries.length == 1) {
-    country = filteredCountries[0]
-    return <Country country={country} />
-  } else if (filteredCountries.length < 10) {
-    return (
-      filteredCountries.map((country, idx) => <p key={idx}>{country.name.common}</p>)
-    )
+  if (countries.length === 1) {
+    return <Country country={countries[0]} />
+  } else if (countries.length < 10) {
+    return <CountryListView countries={countries} />
   } else {
     return <p>Too many matches, specify another filter</p>
   }
@@ -42,6 +52,7 @@ const Countries = ({countries, filter}) => {
 const App = () => {
   const [countries, setCountries] = useState([])
   const [filter, setFilter] = useState('')
+  const [filteredCountries, setFilteredCountries] = useState([]) 
 
   const getCountries = () => {
     axios
@@ -49,13 +60,19 @@ const App = () => {
       .then(response => {
         console.log(response)
         setCountries(response.data)
+        setFilteredCountries(response.data)
       })
   }
 
   useEffect(getCountries, [])
 
+  const filterCountriesHelper = (filter) => {
+    return countries.filter(country => country.name.common.toLowerCase().includes(filter.toLowerCase()))
+  }
+
   const handleFilterChange = (event) => {
     setFilter(event.target.value)
+    setFilteredCountries(filterCountriesHelper(event.target.value))
   }
 
   return (
@@ -67,8 +84,7 @@ const App = () => {
         onChange={handleFilterChange}
       />
       <Countries
-        countries={countries}
-        filter={filter}
+        countries={filteredCountries}
       />
     </div>
   )

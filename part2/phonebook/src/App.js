@@ -146,6 +146,12 @@ const App = () => {
             setNotification(null)
           }, 4000)
         })
+        .catch(error => {
+          setNotification({'notification': `${error.response.data.error}`, type:'delete'})
+          setTimeout(() => {
+            setNotification(null)
+          }, 4000)
+        })
     }
   }
 
